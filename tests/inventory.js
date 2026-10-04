@@ -148,6 +148,10 @@ async function run() {
 		const createdProduct = await api('/admin/products', { admin: true, method: 'POST', body: JSON.stringify({ title: 'Test overshirt', category_id: categories.data[0].id, subcategory_id: subcategories.data[0].id, price: 12, quantity: 1, image_url: uploadedImage.url }) });
 		assert.equal(createdProduct.response.status, 201);
 		assert.equal(createdProduct.data.image, uploadedImage.url);
+		const skuEdit = await api('/admin/product', { admin: true, method: 'POST', body: JSON.stringify({ id: createdProduct.data.id, sku: 'CUSTOM-2026-001', title: createdProduct.data.title, quantity: 1, price: 12, active: true }) });
+		assert.equal(skuEdit.data.sku, 'CUSTOM-2026-001');
+		const duplicateSku = await api('/admin/product', { admin: true, method: 'POST', body: JSON.stringify({ id: createdProduct.data.id, sku: item.sku, title: createdProduct.data.title, quantity: 1, price: 12, active: true }) });
+		assert.equal(duplicateSku.response.status, 409);
 		assert.equal((await api(`/admin/products/${createdProduct.data.id}`, { admin: true, method: 'DELETE' })).data.archived, true);
 		assert.equal((await api(`/products/${createdProduct.data.id}`)).response.status, 404);
 

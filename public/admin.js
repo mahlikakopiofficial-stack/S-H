@@ -46,7 +46,8 @@ function renderInventory(){
 	currentPage=Math.min(currentPage,pageCount-1);
 	const start=currentPage*pageSize;
 	const rows=filtered.slice(start,start+pageSize);
-	$('#inventoryTable').innerHTML=rows.length?`<table class="admin-table"><thead><tr><th>SKU / Piece</th><th>Category</th><th>Qty</th><th>Available</th><th>Reserved</th><th>Sold</th><th>Price</th><th>Live</th><th></th></tr></thead><tbody>${rows.map(item=>`<tr data-id="${item.id}"><td><b>${escapeHtml(item.sku)}</b><input data-field="title" type="text" maxlength="180" value="${escapeHtml(item.title)}" aria-label="Item title for ${escapeHtml(item.sku)}"></td><td>${escapeHtml(item.category)} / ${escapeHtml(item.subcategory)}</td><td><input data-field="quantity" type="number" min="0" step="1" value="${item.quantity}" aria-label="Quantity for ${escapeHtml(item.sku)}"></td><td>${item.available_quantity}</td><td>${item.reserved_quantity}</td><td>${item.sold_quantity}</td><td><input data-field="price" type="number" min="0.001" step="0.001" value="${Number(item.price).toFixed(3)}" aria-label="Price for ${escapeHtml(item.sku)}"></td><td><input data-field="active" type="checkbox" ${item.active?'checked':''} aria-label="Live listing for ${escapeHtml(item.sku)}"></td><td class="inventory-actions"><button class="admin-save" type="button" data-action="save">Save</button><button class="admin-archive" type="button" data-action="archive">Archive</button></td></tr>`).join('')}</tbody></table>`:'<p class="orders-empty">No pieces match this search.</p>';
+	const tableRows=rows.map(item=>`<tr data-id="${item.id}"><td><input class="sku-edit" data-field="sku" type="text" maxlength="64" value="${escapeHtml(item.sku)}" aria-label="SKU for ${escapeHtml(item.title)}"><input data-field="title" type="text" maxlength="180" value="${escapeHtml(item.title)}" aria-label="Item title for ${escapeHtml(item.sku)}"></td><td>${escapeHtml(item.category)} / ${escapeHtml(item.subcategory)}</td><td><input data-field="quantity" type="number" min="0" step="1" value="${item.quantity}" aria-label="Quantity for ${escapeHtml(item.sku)}"></td><td>${item.available_quantity}</td><td>${item.reserved_quantity}</td><td>${item.sold_quantity}</td><td><input data-field="price" type="number" min="0.001" step="0.001" value="${Number(item.price).toFixed(3)}" aria-label="Price for ${escapeHtml(item.sku)}"></td><td><input data-field="active" type="checkbox" ${item.active?'checked':''} aria-label="Live listing for ${escapeHtml(item.sku)}"></td><td class="inventory-actions"><button class="admin-save" type="button" data-action="save">Save</button><button class="admin-archive" type="button" data-action="archive">Archive</button></td></tr>`).join('');
+	$('#inventoryTable').innerHTML=rows.length?`<table class="admin-table"><thead><tr><th>SKU / Piece</th><th>Category</th><th>Qty</th><th>Available</th><th>Reserved</th><th>Sold</th><th>Price</th><th>Live</th><th></th></tr></thead><tbody>${tableRows}</tbody></table>`:'<p class="orders-empty">No pieces match this search.</p>';
 	$('#inventoryPagination').innerHTML=`<button type="button" data-page="previous" ${currentPage===0?'disabled':''}>Previous</button><span>${filtered.length?start+1:0}-${Math.min(start+pageSize,filtered.length)} of ${filtered.length.toLocaleString()}</span><button type="button" data-page="next" ${currentPage>=pageCount-1?'disabled':''}>Next</button>`;
 }
 function renderOrders(){
@@ -78,7 +79,7 @@ async function saveProduct(row){
 	const button=row.querySelector('[data-action="save"]');
 	button.disabled=true;
 	try{
-		await request('/admin/product',{method:'POST',body:JSON.stringify({id:Number(row.dataset.id),title:row.querySelector('[data-field="title"]').value,quantity:Number(row.querySelector('[data-field="quantity"]').value),price:Number(row.querySelector('[data-field="price"]').value),active:row.querySelector('[data-field="active"]').checked})});
+		await request('/admin/product',{method:'POST',body:JSON.stringify({id:Number(row.dataset.id),sku:row.querySelector('[data-field="sku"]').value,title:row.querySelector('[data-field="title"]').value,quantity:Number(row.querySelector('[data-field="quantity"]').value),price:Number(row.querySelector('[data-field="price"]').value),active:row.querySelector('[data-field="active"]').checked})});
 		await loadInventory();setStatus('Inventory updated.');
 	}catch(error){setStatus(error.message,true)}
 	finally{button.disabled=false}
@@ -136,8 +137,14 @@ $('#newProductForm').addEventListener('submit',async event=>{
 		const fields=Object.fromEntries(formData);delete fields.image;fields.image_url=imageUrl;
 		const product=await request('/admin/products',{method:'POST',body:JSON.stringify(fields)});
 		event.currentTarget.reset();
+		$('#inventorySearch').value='';
+		$('#inventoryCategory').value='';
+		$('#inventoryFilter').value='';
+		$('#inventorySort').value='newest';
+		currentPage=0;
 		await loadInventory();
 		setStatus(`${product.sku} added to inventory.`);
+		$('#inventoryTable').scrollIntoView({behavior:'smooth',block:'start'});
 	}catch(error){setStatus(error.message,true)}
 	finally{button.disabled=false}
 });

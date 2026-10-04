@@ -332,12 +332,14 @@ app.post('/api/admin/product',(req,res)=>{
  if(!adminAuth(req,res))return;
  const b=req.body||{},p=getProduct(b.id);
  if(!p)return res.status(404).json({error:'Use a valid product id'});
- const q=Number(b.quantity),price=Number(b.price),title=String(b.title??p.title).trim();
+ const q=Number(b.quantity),price=Number(b.price),title=String(b.title??p.title).trim(),sku=String(b.sku??p.sku).trim();
  if(!title||title.length>180)return res.status(400).json({error:'Enter a title of 1 to 180 characters'});
+ if(!/^[A-Za-z0-9._-]{1,64}$/.test(sku))return res.status(400).json({error:'SKU must use 1 to 64 letters, numbers, dots, underscores or hyphens'});
+ if(db.prepare('SELECT id FROM products WHERE lower(sku)=lower(?) AND id<>?').get(sku,p.id))return res.status(409).json({error:'That SKU is already assigned to another item'});
  if(!Number.isInteger(q)||q<0||!Number.isFinite(price)||price<=0)return res.status(400).json({error:'Enter a non-negative whole quantity and a price above zero'});
  const counts=inventoryCounts(p);
  if(q<counts.reserved_quantity+counts.sold_quantity)return res.status(409).json({error:'Quantity cannot be lower than reserved and sold stock'});
- db.prepare("UPDATE products SET title=?,quantity=?,price=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(title,q,price,b.active===false?0:1,p.id);
+ db.prepare("UPDATE products SET sku=?,title=?,quantity=?,price=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(sku,title,q,price,b.active===false?0:1,p.id);
  res.json(productPublic(getProduct(p.id)));
 });
 app.delete('/api/admin/products/:id',requireAdmin,(req,res)=>{

@@ -35,4 +35,6 @@ Set `DATA_DIR` to choose the SQLite data directory. Tests use temporary `DATA_DI
 
 Sample catalog items use clearly labeled reference photos until real product photos are added.
 
+For a production VPS deployment with systemd, Nginx and HTTPS, follow [deploy/VPS.md](deploy/VPS.md).
+
 Do not reuse RESTAU's database, environment file, process, or deployment directory.

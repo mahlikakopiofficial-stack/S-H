@@ -142,6 +142,9 @@ async function run() {
 		const uploadedImage = await uploadResponse.json();
 		assert.equal(uploadResponse.status, 201);
 		assert.match(uploadedImage.url, /^\/uploads\/.+\.png$/);
+		const uploadedFile = await fetch(`${baseUrl}${uploadedImage.url}`);
+		assert.equal(uploadedFile.status, 200, 'uploaded images must be served from the configured upload directory');
+		assert.match(uploadedFile.headers.get('content-type'), /image\/png/);
 		const createdProduct = await api('/admin/products', { admin: true, method: 'POST', body: JSON.stringify({ title: 'Test overshirt', category_id: categories.data[0].id, subcategory_id: subcategories.data[0].id, price: 12, quantity: 1, image_url: uploadedImage.url }) });
 		assert.equal(createdProduct.response.status, 201);
 		assert.equal(createdProduct.data.image, uploadedImage.url);

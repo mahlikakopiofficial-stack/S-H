@@ -9,6 +9,7 @@ const multer=require('multer');
 const E=process.env;
 try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split(/\r?\n/).forEach(l=>{const m=l.match(/^\\s*([A-Z_]+)\\s*=\\s*(.*?)\\s*$/);if(m&&!process.env[m[1]])process.env[m[1]]=m[2]})}catch{}
 const PORT=Number(E.PORT||3000);
+const HOST=E.HOST||'127.0.0.1';
 const HOURS=Math.max(1,Number(E.RESERVATION_HOURS||24));
 const CURRENCY=E.CURRENCY||'KWD';
 const ADMIN_PASSWORD=String(E.ADMIN_PASSWORD||'').trim();
@@ -66,6 +67,7 @@ if(!db.prepare('PRAGMA table_info(orders)').all().some(column=>column.name==='cu
 db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id,created_at)');
 const uploadDir=E.UPLOAD_DIR||path.join(__dirname,'public','uploads');
 fs.mkdirSync(uploadDir,{recursive:true});
+app.use('/uploads',express.static(uploadDir,{maxAge:'1d'}));
 const imageExtensions={'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp','image/gif':'.gif'};
 const upload=multer({storage:multer.diskStorage({destination:uploadDir,filename:(req,file,done)=>done(null,crypto.randomUUID()+imageExtensions[file.mimetype])}),limits:{fileSize:8*1024*1024,files:1},fileFilter:(req,file,done)=>imageExtensions[file.mimetype]?done(null,true):done(new Error('Choose a JPEG, PNG, WebP, or GIF image'))});
 
@@ -357,4 +359,4 @@ app.use((error,req,res,next)=>{
  next(error);
 });
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
-const server=app.listen(PORT,()=>console.log(`S-H listening on :${server.address().port}`));
+const server=app.listen(PORT,HOST,()=>console.log(`S-H listening on :${server.address().port}`));

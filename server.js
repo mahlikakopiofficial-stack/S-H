@@ -261,7 +261,7 @@ app.delete('/api/cart/:productId',requireSession,(req,res)=>{
  releaseExpired();
  const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);
  if(!c)return res.json({ok:1});
- const item=db.prepare('SELECT ci.reservation_id,ci.product_id,ci.quantity FROM cart_items ci JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=? AND ci.product_id=? AND r.session_id=? AND r.status='active'').get(c.id,req.params.productId,req.sid);
+ const item=db.prepare("SELECT ci.reservation_id,ci.product_id,ci.quantity FROM cart_items ci JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=? AND ci.product_id=? AND r.session_id=? AND r.status='active'").get(c.id,req.params.productId,req.sid);
  if(!item)return res.json({ok:1});
  const now=Date.now();
  const tx=db.transaction(()=>{

@@ -1,15 +1,113 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>S-H — Thrift Finds</title><link rel="stylesheet" href="/style.css"></head>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <meta name="description" content="S-H secondhand and thrift clothing finds.">
+  <title>S-H — Thrift Finds</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
 <body>
-<header class="top"><a class="brand" href="/">S-H</a><nav><a href="#shop">Shop</a><a href="#categories">Categories</a><a href="#about">About</a><a href="#location">Location</a><button id="cartBtn" class="navbtn">Cart <span id="cartCount">0</span></button></nav></header>
-<main>
-<section class="hero"><div><p class="eyebrow">SECONDHAND • ONE-OF-A-KIND</p><h1>Find it. Love it. Wear it again.</h1><p>Curated thrift clothing, shoes and accessories for every age.</p><a class="button" href="#shop">Shop finds</a></div></section>
-<section id="categories" class="section"><div class="sectionhead"><h2>Categories</h2></div><div id="cats" class="chips"></div></section>
-<section id="shop" class="section"><div class="sectionhead"><h2>Latest finds</h2><select id="catFilter"><option value="">All categories</option></select></div><div id="grid" class="grid"></div></section>
-<section id="about" class="section split"><div><h2>Thrift, clearly listed.</h2><p>Every item shows its measurements, condition, identifiers and current inventory state.</p></div><div class="notice"><b>24-hour reservation</b><br>An item can stay visible after another customer reserves it, but it cannot be added to another cart. If checkout is not completed within 24 hours, it returns automatically.</div></section>
-<section id="location" class="section"><h2>Delivery location</h2><p>Checkout includes your PACI reference and a map/location link so the delivery address is easy to identify.</p></section>
-</main>
-<aside id="cart" class="drawer"><div class="drawerhead"><h2>Your cart</h2><button onclick="closeCart()">×</button></div><div id="cartLines"></div><div id="cartTotal"></div><form id="checkout"><input name="name" placeholder="Full name" required><input name="phone" placeholder="Phone" required><input name="email" type="email" placeholder="Email"><textarea name="address" placeholder="Delivery address" required></textarea><input name="paci" placeholder="PACI reference"><input name="map_url" placeholder="Map/location link"><textarea name="notes" placeholder="Delivery notes"></textarea><button class="button" type="submit">Place order</button></form></aside>
-<div id="overlay" class="overlay" onclick="closeCart()"></div>
-<div id="preview" class="modal"><div class="modalbox"><button class="x" onclick="closePreview()">×</button><div id="previewBody"></div></div></div>
-<script src="/app.js"></script></body></html>
+  <header class="top">
+    <a class="brand" href="/" aria-label="S-H home">S-H</a>
+    <nav aria-label="Main navigation">
+      <a href="#shop">Shop</a>
+      <a href="#categories">Categories</a>
+      <a href="#about">About</a>
+      <a href="#location">Location</a>
+      <button id="cartBtn" class="navbtn" type="button">
+        Cart <span id="cartCount">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">SECONDHAND • ONE-OF-A-KIND</p>
+        <h1>Find it. Love it. Wear it again.</h1>
+        <p>Curated thrift clothing, shoes and accessories for every age.</p>
+        <a class="button" href="#shop">Shop finds</a>
+      </div>
+    </section>
+
+    <section id="categories" class="section">
+      <div class="sectionhead">
+        <div>
+          <p class="eyebrow">BROWSE</p>
+          <h2>Categories</h2>
+        </div>
+      </div>
+      <div id="cats" class="chips"></div>
+    </section>
+
+    <section id="shop" class="section">
+      <div class="sectionhead">
+        <div>
+          <p class="eyebrow">CURATED INVENTORY</p>
+          <h2>Latest finds</h2>
+        </div>
+        <div class="filters">
+          <input id="search" type="search" placeholder="Search brand, SKU or item" aria-label="Search items">
+          <select id="catFilter" aria-label="Filter by category">
+            <option value="">All categories</option>
+          </select>
+        </div>
+      </div>
+      <div id="inventoryNotice" class="inventoryNotice" role="status"></div>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <section id="about" class="section split">
+      <div>
+        <p class="eyebrow">HOW S-H WORKS</p>
+        <h2>Thrift, clearly listed.</h2>
+        <p>Every item can show its measurements, condition, identifiers and current inventory state before you reserve it.</p>
+      </div>
+      <div class="notice">
+        <b>24-hour reservation</b>
+        <p>An item can stay visible after another customer reserves it, but it cannot be added to another cart. If checkout is not completed within 24 hours, the reservation expires and the item returns automatically.</p>
+      </div>
+    </section>
+
+    <section id="location" class="section">
+      <p class="eyebrow">DELIVERY</p>
+      <h2>Location made clear</h2>
+      <p>Checkout accepts your delivery address, PACI reference and map/location link to make delivery easier to identify.</p>
+    </section>
+  </main>
+
+  <aside id="cart" class="drawer" aria-label="Shopping cart">
+    <div class="drawerhead">
+      <h2>Your cart</h2>
+      <button type="button" onclick="closeCart()" aria-label="Close cart">×</button>
+    </div>
+    <div id="cartLines"></div>
+    <div id="cartTotal"></div>
+
+    <form id="checkout">
+      <h3>Checkout</h3>
+      <input name="name" placeholder="Full name" autocomplete="name" required>
+      <input name="phone" placeholder="Phone" autocomplete="tel" required>
+      <input name="email" type="email" placeholder="Email" autocomplete="email">
+      <textarea name="address" placeholder="Delivery address" autocomplete="street-address" required></textarea>
+      <input name="paci" placeholder="PACI reference">
+      <input name="map_url" type="url" placeholder="Map/location link">
+      <textarea name="notes" placeholder="Delivery notes"></textarea>
+      <button class="button" type="submit">Place order</button>
+    </form>
+  </aside>
+
+  <div id="overlay" class="overlay" onclick="closeCart()"></div>
+
+  <div id="preview" class="modal" role="dialog" aria-modal="true" aria-label="Item preview">
+    <div class="modalbox">
+      <button class="x" type="button" onclick="closePreview()" aria-label="Close preview">×</button>
+      <div id="previewBody"></div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

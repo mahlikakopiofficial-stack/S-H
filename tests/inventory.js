@@ -85,6 +85,13 @@ async function run() {
 		assert.equal(reservation.response.status, 201);
 		const competingReservation = await api('/cart/add', { session: 'customer-two', method: 'POST', body: JSON.stringify({ product_id: item.id, quantity: 1 }) });
 		assert.equal(competingReservation.response.status, 409, 'an active hold must block a competing cart');
+		const releaseItem = products.find(product => product.id !== item.id && product.available_quantity > 0);
+		assert.ok(releaseItem, 'seeded inventory should contain a second available item');
+		const releaseHold = await api('/cart/add', { session: 'release-session', method: 'POST', body: JSON.stringify({ product_id: releaseItem.id, quantity: 1 }) });
+		assert.equal(releaseHold.response.status, 201);
+		const releaseResponse = await api('/cart/'+releaseItem.id, { session: 'release-session', method: 'DELETE' });
+		assert.equal(releaseResponse.response.status, 200);
+		assert.equal((await api('/products/'+releaseItem.id)).data.status, 'available', 'removing a reserved item must release it immediately');
 		assert.equal((await api('/customer/orders')).response.status, 401, 'customer orders must require authentication');
 
 		const registration = await api('/customer/register', { method: 'POST', body: JSON.stringify({ name: 'Test Buyer', email: 'buyer@example.test', phone: '5550100', password: 'strong-test-password' }) });

@@ -76,6 +76,7 @@ function releaseExpired(now=Date.now()){
  tx(); return rows.length;
 }
 function reservedQty(productId,now=Date.now()){releaseExpired(now);return db.prepare("SELECT COALESCE(SUM(quantity),0) n FROM reservations WHERE product_id=? AND status='active' AND expires_at> ?").get(productId,now).n}
+function activeReservedQty(productId,now=Date.now()){return db.prepare("SELECT COALESCE(SUM(quantity),0) n FROM reservations WHERE product_id=? AND status='active' AND expires_at> ?").get(productId,now).n}
 function publicStatus(p,now=Date.now()){const r=reservedQty(p.id,now);if(p.quantity-r<=0)return r?'reserved':'sold';return 'available'}
 function productPublic(p){
  const r=reservedQty(p.id);return {...p,status:p.quantity-r<=0?(r?'reserved':'sold'):'available',available_quantity:Math.max(0,p.quantity-r),images:JSON.parse(p.images||'[]')};
@@ -129,12 +130,13 @@ app.get('/api/products/:id',(req,res)=>{releaseExpired();const p=getProduct(req.
 
 app.post('/api/cart/add',requireSession,(req,res)=>{
  releaseExpired();const p=getProduct(req.body.product_id);if(!p||!p.active)return res.status(404).json({error:'Item unavailable'});
- const qty=Math.max(1,Number(req.body.quantity||1));const now=Date.now();const available=p.quantity-reservedQty(p.id,now);
+ const qty=Math.max(1,Number(req.body.quantity||1));const now=Date.now();const available=p.quantity-activeReservedQty(p.id,now);
  if(available<qty)return res.status(409).json({error:available?'Item has insufficient available stock':'Item is currently reserved'});
  const existing=db.prepare("SELECT * FROM reservations WHERE product_id=? AND session_id=? AND status='active' AND expires_at>?").get(p.id,req.sid,now);
  if(existing)return res.json({ok:1,reservation_id:existing.id,expires_at:existing.expires_at});
  const exp=now+HOURS*3600000;
  const tx=db.transaction(()=>{
+   if(p.quantity-activeReservedQty(p.id,now)<qty)throw new Error('RESERVATION_RACE');
    const r=db.prepare("INSERT INTO reservations(product_id,session_id,quantity,expires_at,status,created_at) VALUES(?,?,?,?, 'active',?)").run(p.id,req.sid,qty,exp,now);
    db.prepare("INSERT OR IGNORE INTO carts(session_id,updated_at) VALUES(?,?)").run(req.sid,now);
    const cart=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);
@@ -142,17 +144,17 @@ app.post('/api/cart/add',requireSession,(req,res)=>{
    db.prepare("INSERT INTO inventory_events(product_id,event,reference,details,created_at) VALUES(?,?,?,?,?)").run(p.id,'Reserved',String(r.lastInsertRowid),`Reserved for ${HOURS} hours`,now);
    return r.lastInsertRowid;
  });
- const rid=tx();res.status(201).json({ok:1,reservation_id:rid,expires_at:exp});
+ try{const rid=tx();res.status(201).json({ok:1,reservation_id:rid,expires_at:exp,reservation_hours:HOURS});}catch(e){if(e.message==='RESERVATION_RACE')return res.status(409).json({error:'Item was just reserved by another customer. Refresh and try again.'});throw e}
 });
 
 app.get('/api/cart',requireSession,(req,res)=>{releaseExpired();const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(!c)return res.json({items:[],total:0});const rows=db.prepare(`SELECT ci.*,p.title,p.sku,p.price,p.image,r.expires_at,r.status FROM cart_items ci JOIN products p ON p.id=ci.product_id JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=? AND r.status='active' AND r.expires_at>?`).all(c.id,Date.now());res.json({items:rows,total:rows.reduce((s,x)=>s+x.price*x.quantity,0)})});
-app.delete('/api/cart/:productId',requireSession,(req,res)=>{const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(c)db.prepare('DELETE FROM cart_items WHERE cart_id=? AND product_id=?').run(c.id,req.params.productId);res.json({ok:1})});
+app.delete('/api/cart/:productId',requireSession,(req,res)=>{releaseExpired();const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(!c)return res.json({ok:1});const row=db.prepare('SELECT reservation_id FROM cart_items WHERE cart_id=? AND product_id=?').get(c.id,req.params.productId);const tx=db.transaction(()=>{if(row?.reservation_id)db.prepare("UPDATE reservations SET status='cancelled' WHERE id=? AND status='active'").run(row.reservation_id);db.prepare('DELETE FROM cart_items WHERE cart_id=? AND product_id=?').run(c.id,req.params.productId)});tx();res.json({ok:1})});
 
 app.post('/api/checkout',requireSession,(req,res)=>{
  releaseExpired();const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(!c)return res.status(400).json({error:'Cart is empty'});
  const rows=db.prepare(`SELECT ci.*,p.title,p.sku,p.price,p.quantity,r.id reservation_id,r.expires_at,r.status FROM cart_items ci JOIN products p ON p.id=ci.product_id JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=?`).all(c.id);
  const now=Date.now();if(!rows.length)return res.status(400).json({error:'Cart is empty'});
- for(const x of rows){if(x.status!=='active'||x.expires_at<=now)return res.status(409).json({error:`Reservation expired: ${x.title}`});if(x.quantity> x.quantity /* placeholder guard */)return res.status(409).json({error:'Inventory changed'})}
+ for(const x of rows){if(x.status!=='active'||x.expires_at<=now)return res.status(409).json({error:`Reservation expired: ${x.title}`});if(x.quantity<1)return res.status(409).json({error:'Invalid quantity'})}
  const required=['name','phone','address'];for(const k of required)if(!String(req.body[k]||'').trim())return res.status(400).json({error:`${k} is required`});
  const subtotal=rows.reduce((s,x)=>s+x.price*x.quantity,0);const orderNo=makeOrderNo();
  const tx=db.transaction(()=>{

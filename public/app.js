@@ -42,6 +42,8 @@ async function load(){
 	$('#catFilter').innerHTML='<option value="">All categories</option>'+categories.map(category=>`<option value="${esc(category.name)}">${esc(category.name)}</option>`).join('');
 	await loadProducts();
 }
+async function refreshStorefrontSettings(){try{applyStorefrontSettings(await api('/storefront/settings'))}catch{}}
+
 function applyStorefrontSettings(settings){
 	$('#announcement').textContent=settings.announcement;
 	$('#announcement').hidden=!settings.announcement;
@@ -133,3 +135,4 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeCart()
 
 load().then(loadCart).catch(error=>showToast(error.message));
 setInterval(()=>loadProducts().catch(()=>{}),45000);
+setInterval(()=>refreshStorefrontSettings(),45000);

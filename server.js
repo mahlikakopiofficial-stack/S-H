@@ -9,14 +9,15 @@ try{fs.readFileSync(path.join(__dirname,'.env'),'utf8').split(/\r?\n/).forEach(l
 const PORT=Number(E.PORT||3000);
 const HOURS=Math.max(1,Number(E.RESERVATION_HOURS||24));
 const CURRENCY=E.CURRENCY||'KWD';
-const ADMIN_PASSWORD=E.ADMIN_PASSWORD||'admin123';
+const ADMIN_PASSWORD=String(E.ADMIN_PASSWORD||'').trim();
+if(!ADMIN_PASSWORD) console.warn('WARNING: ADMIN_PASSWORD is not configured; admin API is disabled until it is set.');
 const app=express();
 app.use(cors());
 app.use(express.json({limit:'2mb'}));
 app.use(express.urlencoded({extended:true}));
 app.use(express.static(path.join(__dirname,'public')));
 
-const dataDir=path.join(__dirname,'data'); fs.mkdirSync(dataDir,{recursive:true});
+const dataDir=path.resolve(E.DATA_DIR||path.join(__dirname,'data')); fs.mkdirSync(dataDir,{recursive:true});
 const db=new Database(path.join(dataDir,'sh.db'));
 db.pragma('journal_mode=WAL');
 db.pragma('foreign_keys=ON');
@@ -75,11 +76,11 @@ function releaseExpired(now=Date.now()){
  }});
  tx(); return rows.length;
 }
-function reservedQty(productId,now=Date.now()){releaseExpired(now);return db.prepare("SELECT COALESCE(SUM(quantity),0) n FROM reservations WHERE product_id=? AND status='active' AND expires_at> ?").get(productId,now).n}
-function publicStatus(p,now=Date.now()){const r=reservedQty(p.id,now);if(p.quantity-r<=0)return r?'reserved':'sold';return 'available'}
-function productPublic(p){
- const r=reservedQty(p.id);return {...p,status:p.quantity-r<=0?(r?'reserved':'sold'):'available',available_quantity:Math.max(0,p.quantity-r),images:JSON.parse(p.images||'[]')};
-}
+function reservedQty(productId,now=Date.now()){releaseExpired(now);return Number(db.prepare("SELECT COALESCE(SUM(quantity),0) n FROM reservations WHERE product_id=? AND status='active' AND expires_at> ?").get(productId,now).n||0)}
+function soldQty(productId){return Number(db.prepare("SELECT COALESCE(SUM(oi.quantity),0) n FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE oi.product_id=? AND o.status NOT IN ('Cancelled','Refunded')").get(productId).n||0)}
+function availableQty(productId,now=Date.now()){const p=db.prepare('SELECT quantity FROM products WHERE id=?').get(productId);if(!p)return 0;return Math.max(0,Number(p.quantity)-soldQty(productId)-reservedQty(productId,now))}
+function publicStatus(p,now=Date.now()){const available=availableQty(p.id,now);if(available>0)return 'available';return reservedQty(p.id,now)>0?'reserved':'sold'}
+function productPublic(p){const available=availableQty(p.id);return {...p,status:available>0?'available':(reservedQty(p.id)>0?'reserved':'sold'),available_quantity:available,reserved_quantity:reservedQty(p.id),sold_quantity:soldQty(p.id),images:JSON.parse(p.images||'[]')}}
 function getProduct(id){return db.prepare('SELECT p.*,c.name category,s.name subcategory FROM products p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN subcategories s ON s.id=p.subcategory_id WHERE p.id=?').get(id)}
 function session(req){return String(req.headers['x-cart-session']||req.body?.session_id||'').trim()}
 function requireSession(req,res,next){const s=session(req);if(!s)return res.status(400).json({error:'Cart session required'});req.sid=s;next()}
@@ -129,7 +130,7 @@ app.get('/api/products/:id',(req,res)=>{releaseExpired();const p=getProduct(req.
 
 app.post('/api/cart/add',requireSession,(req,res)=>{
  releaseExpired();const p=getProduct(req.body.product_id);if(!p||!p.active)return res.status(404).json({error:'Item unavailable'});
- const qty=Math.max(1,Number(req.body.quantity||1));const now=Date.now();const available=p.quantity-reservedQty(p.id,now);
+ const qty=Math.max(1,Number(req.body.quantity||1));const now=Date.now();const available=availableQty(p.id,now);
  if(available<qty)return res.status(409).json({error:available?'Item has insufficient available stock':'Item is currently reserved'});
  const existing=db.prepare("SELECT * FROM reservations WHERE product_id=? AND session_id=? AND status='active' AND expires_at>?").get(p.id,req.sid,now);
  if(existing)return res.json({ok:1,reservation_id:existing.id,expires_at:existing.expires_at});
@@ -152,16 +153,22 @@ app.post('/api/checkout',requireSession,(req,res)=>{
  releaseExpired();const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(!c)return res.status(400).json({error:'Cart is empty'});
  const rows=db.prepare(`SELECT ci.*,p.title,p.sku,p.price,p.quantity,r.id reservation_id,r.expires_at,r.status FROM cart_items ci JOIN products p ON p.id=ci.product_id JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=?`).all(c.id);
  const now=Date.now();if(!rows.length)return res.status(400).json({error:'Cart is empty'});
- for(const x of rows){if(x.status!=='active'||x.expires_at<=now)return res.status(409).json({error:`Reservation expired: ${x.title}`});if(x.quantity> x.quantity /* placeholder guard */)return res.status(409).json({error:'Inventory changed'})}
+ for(const x of rows){
+  if(x.status!=='active'||x.expires_at<=now)return res.status(409).json({error:`Reservation expired: ${x.title}`});
+  const p=getProduct(x.product_id);
+  const sold=soldQty(x.product_id);
+  if(!p||sold+x.quantity>p.quantity)return res.status(409).json({error:`Inventory changed: ${x.title}`});
+}
  const required=['name','phone','address'];for(const k of required)if(!String(req.body[k]||'').trim())return res.status(400).json({error:`${k} is required`});
  const subtotal=rows.reduce((s,x)=>s+x.price*x.quantity,0);const orderNo=makeOrderNo();
  const tx=db.transaction(()=>{
   const order=db.prepare("INSERT INTO orders(order_no,session_id,name,phone,email,address,paci,map_url,notes,subtotal,total,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,'Placed',?,?)").run(orderNo,req.sid,String(req.body.name).trim(),String(req.body.phone).trim(),String(req.body.email||'').trim(),String(req.body.address).trim(),String(req.body.paci||'').trim(),String(req.body.map_url||'').trim(),String(req.body.notes||'').trim(),subtotal,subtotal,now,now);
   for(const x of rows){
-    const fresh=reservedQty(x.product_id,now);
     const p=getProduct(x.product_id);
-    if(!p||p.quantity-fresh<0)throw new Error('INVENTORY_CHANGED');
-    db.prepare("UPDATE reservations SET status='converted' WHERE id=? AND status='active'").run(x.reservation_id);
+    const sold=soldQty(x.product_id);
+    if(!p||sold+x.quantity>p.quantity)throw new Error('INVENTORY_CHANGED');
+    const changed=db.prepare("UPDATE reservations SET status='converted' WHERE id=? AND status='active'").run(x.reservation_id);
+    if(changed.changes!==1)throw new Error('INVENTORY_CHANGED');
     db.prepare("INSERT INTO order_items(order_id,product_id,sku,title,price,quantity) VALUES(?,?,?,?,?,?)").run(order.lastInsertRowid,x.product_id,x.sku,x.title,x.price,x.quantity);
     db.prepare("INSERT INTO inventory_events(product_id,event,reference,details,created_at) VALUES(?,?,?,?,?)").run(x.product_id,'Order placed',orderNo,'Reserved stock converted to order',now);
   }
@@ -172,9 +179,29 @@ app.post('/api/checkout',requireSession,(req,res)=>{
  catch(e){if(e.message==='INVENTORY_CHANGED')return res.status(409).json({error:'Inventory changed. Please refresh your cart.'});throw e}
 });
 
-app.get('/api/admin/inventory',(req,res)=>{if(req.headers['x-admin-password']!==ADMIN_PASSWORD)return res.status(401).json({error:'Unauthorized'});releaseExpired();res.json(db.prepare('SELECT p.*,c.name category,s.name subcategory,(p.quantity-COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id=p.id AND r.status=\'active\' AND r.expires_at>?),0)) available_quantity FROM products p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN subcategories s ON s.id=p.subcategory_id ORDER BY p.id DESC').all(Date.now()).map(x=>({...x,status:x.available_quantity<=0&&reservedQty(x.id)?'reserved':x.available_quantity<=0?'sold':'available'})))});
-app.get('/api/admin/orders',(req,res)=>{if(req.headers['x-admin-password']!==ADMIN_PASSWORD)return res.status(401).json({error:'Unauthorized'});res.json(db.prepare('SELECT * FROM orders ORDER BY id DESC').all())});
-app.post('/api/admin/product',(req,res)=>{if(req.headers['x-admin-password']!==ADMIN_PASSWORD)return res.status(401).json({error:'Unauthorized'});const b=req.body;const p=getProduct(b.id);if(!p)return res.status(404).json({error:'Use a valid product id'});const q=Math.max(0,Number(b.quantity));db.prepare("UPDATE products SET quantity=?,price=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(q,Number(b.price),b.active===false?0:1,p.id);res.json(productPublic(getProduct(p.id)))});
+function adminAuth(req,res){if(!ADMIN_PASSWORD||req.headers['x-admin-password']!==ADMIN_PASSWORD){res.status(401).json({error:'Unauthorized'});return false}return true}
+app.get('/api/admin/inventory',(req,res)=>{
+ if(!adminAuth(req,res))return;
+ releaseExpired();
+ const rows=db.prepare('SELECT p.*,c.name category,s.name subcategory FROM products p LEFT JOIN categories c ON c.id=p.category_id LEFT JOIN subcategories s ON s.id=p.subcategory_id ORDER BY p.id DESC').all();
+ res.json(rows.map(x=>({...x,status:publicStatus(x),available_quantity:availableQty(x.id),reserved_quantity:reservedQty(x.id),sold_quantity:soldQty(x.id)})));
+});
+app.get('/api/admin/orders',(req,res)=>{
+ if(!adminAuth(req,res))return;
+ res.json(db.prepare('SELECT * FROM orders ORDER BY id DESC').all());
+});
+app.post('/api/admin/product',(req,res)=>{
+ if(!adminAuth(req,res))return;
+ const b=req.body||{},p=getProduct(b.id);
+ if(!p)return res.status(404).json({error:'Use a valid product id'});
+ const q=Math.max(0,Math.floor(Number(b.quantity)));
+ const price=Number(b.price);
+ if(!Number.isFinite(q)||!Number.isFinite(price)||price<0)return res.status(400).json({error:'Invalid quantity or price'});
+ const committed=soldQty(p.id)+reservedQty(p.id);
+ if(q<committed)return res.status(409).json({error:`Quantity cannot be below committed stock (${committed}).`});
+ db.prepare("UPDATE products SET quantity=?,price=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(q,price,b.active===false?0:1,p.id);
+ res.json(productPublic(getProduct(p.id)));
+});
 
 app.get('/api/config',(req,res)=>res.json({name:'S-H',domain:E.DOMAIN||'trift-secondhand.duckdns.org',currency:CURRENCY,reservation_hours:HOURS,paci_label:E.PACI_LABEL||'PACI'}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));

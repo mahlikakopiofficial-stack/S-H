@@ -257,7 +257,21 @@ app.post('/api/cart/add',requireSession,(req,res)=>{
 });
 
 app.get('/api/cart',requireSession,(req,res)=>{releaseExpired();const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(!c)return res.json({items:[],total:0});const rows=db.prepare(`SELECT ci.*,p.title,p.sku,p.price,p.image,r.expires_at,r.status FROM cart_items ci JOIN products p ON p.id=ci.product_id JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=? AND r.status='active' AND r.expires_at>?`).all(c.id,Date.now());res.json({items:rows,total:rows.reduce((s,x)=>s+x.price*x.quantity,0)})});
-app.delete('/api/cart/:productId',requireSession,(req,res)=>{const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(c)db.prepare('DELETE FROM cart_items WHERE cart_id=? AND product_id=?').run(c.id,req.params.productId);res.json({ok:1})});
+app.delete('/api/cart/:productId',requireSession,(req,res)=>{
+ releaseExpired();
+ const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);
+ if(!c)return res.json({ok:1});
+ const item=db.prepare('SELECT ci.reservation_id,ci.product_id,ci.quantity FROM cart_items ci JOIN reservations r ON r.id=ci.reservation_id WHERE ci.cart_id=? AND ci.product_id=? AND r.session_id=? AND r.status='active'').get(c.id,req.params.productId,req.sid);
+ if(!item)return res.json({ok:1});
+ const now=Date.now();
+ const tx=db.transaction(()=>{
+   db.prepare("UPDATE reservations SET status='released' WHERE id=? AND session_id=? AND status='active'").run(item.reservation_id,req.sid);
+   db.prepare('DELETE FROM cart_items WHERE cart_id=? AND product_id=?').run(c.id,req.params.productId);
+   db.prepare("INSERT INTO inventory_events(product_id,event,reference,details,created_at) VALUES(?,?,?,?,?)").run(item.product_id,'Reservation released',String(item.reservation_id),'Customer removed the piece from the bag',now);
+ });
+ tx();
+ res.json({ok:1});
+});
 
 app.post('/api/checkout',optionalCustomer,requireSession,(req,res)=>{
  releaseExpired();const c=db.prepare('SELECT id FROM carts WHERE session_id=?').get(req.sid);if(!c)return res.status(400).json({error:'Cart is empty'});
@@ -323,7 +337,15 @@ app.post('/api/admin/products',(req,res)=>{
  const create=db.transaction(()=>{
   const id=db.prepare('SELECT COALESCE(MAX(id),0)+1 next FROM products').get().next;
   const sku='SH-'+String(id).padStart(5,'0'),itemId='ITEM-'+String(id).padStart(6,'0'),image=imageUrl||'/images/placeholder.svg';
-  const result=db.prepare("INSERT INTO products(sku,item_id,title,brand,category_id,subcategory_id,tagged_size,actual_size,condition_grade,notes,price,quantity,active,image,images) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,1,?,?)").run(sku,itemId,title,String(b.brand||'').trim(),categoryId,subcategoryId,String(b.tagged_size||'').trim(),String(b.actual_size||'').trim(),['A','B','C'].includes(b.condition_grade)?b.condition_grade:'B',String(b.notes||'').trim(),price,quantity,image,JSON.stringify([image]));
+  const result=db.prepare("INSERT INTO products(sku,item_id,title,brand,category_id,subcategory_id,tagged_size,actual_size,fit,waist,rise,inseam,outseam,leg_opening,bust_chest,pit_to_pit,shoulder,sleeve,length,material,stretch,color,pattern,era,country_label,condition_grade,wear_level,defects,alterations,notes,price,quantity,active,image,images) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?)").run(
+  sku,itemId,title,String(b.brand||'').trim(),categoryId,subcategoryId,
+  String(b.tagged_size||'').trim(),String(b.actual_size||'').trim(),String(b.fit||'').trim(),
+  String(b.waist||'').trim(),String(b.rise||'').trim(),String(b.inseam||'').trim(),String(b.outseam||'').trim(),String(b.leg_opening||'').trim(),
+  String(b.bust_chest||'').trim(),String(b.pit_to_pit||'').trim(),String(b.shoulder||'').trim(),String(b.sleeve||'').trim(),String(b.length||'').trim(),
+  String(b.material||'').trim(),String(b.stretch||'').trim(),String(b.color||'').trim(),String(b.pattern||'').trim(),String(b.era||'').trim(),String(b.country_label||'').trim(),
+  ['A','B','C'].includes(b.condition_grade)?b.condition_grade:'B',String(b.wear_level||'').trim(),String(b.defects||'').trim(),String(b.alterations||'').trim(),String(b.notes||'').trim(),
+  price,quantity,image,JSON.stringify([image])
+);
   return getProduct(result.lastInsertRowid);
  }).immediate();
  res.status(201).json(productPublic(create));

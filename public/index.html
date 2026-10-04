@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>S-H — Thrift Finds</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header class="top"><a class="brand" href="/">S-H</a><nav><a href="#shop">Shop</a><a href="#categories">Categories</a><a href="#about">About</a><a href="#location">Location</a><button id="cartBtn" class="navbtn">Cart <span id="cartCount">0</span></button></nav></header>
+<main>
+<section class="hero"><div><p class="eyebrow">SECONDHAND • ONE-OF-A-KIND</p><h1>Find it. Love it. Wear it again.</h1><p>Curated thrift clothing, shoes and accessories for every age.</p><a class="button" href="#shop">Shop finds</a></div></section>
+<section id="categories" class="section"><div class="sectionhead"><h2>Categories</h2></div><div id="cats" class="chips"></div></section>
+<section id="shop" class="section"><div class="sectionhead"><h2>Latest finds</h2><select id="catFilter"><option value="">All categories</option></select></div><div id="grid" class="grid"></div></section>
+<section id="about" class="section split"><div><h2>Thrift, clearly listed.</h2><p>Every item shows its measurements, condition, identifiers and current inventory state.</p></div><div class="notice"><b>24-hour reservation</b><br>An item can stay visible after another customer reserves it, but it cannot be added to another cart. If checkout is not completed within 24 hours, it returns automatically.</div></section>
+<section id="location" class="section"><h2>Delivery location</h2><p>Checkout includes your PACI reference and a map/location link so the delivery address is easy to identify.</p></section>
+</main>
+<aside id="cart" class="drawer"><div class="drawerhead"><h2>Your cart</h2><button onclick="closeCart()">×</button></div><div id="cartLines"></div><div id="cartTotal"></div><form id="checkout"><input name="name" placeholder="Full name" required><input name="phone" placeholder="Phone" required><input name="email" type="email" placeholder="Email"><textarea name="address" placeholder="Delivery address" required></textarea><input name="paci" placeholder="PACI reference"><input name="map_url" placeholder="Map/location link"><textarea name="notes" placeholder="Delivery notes"></textarea><button class="button" type="submit">Place order</button></form></aside>
+<div id="overlay" class="overlay" onclick="closeCart()"></div>
+<div id="preview" class="modal"><div class="modalbox"><button class="x" onclick="closePreview()">×</button><div id="previewBody"></div></div></div>
+<script src="/app.js"></script></body></html>

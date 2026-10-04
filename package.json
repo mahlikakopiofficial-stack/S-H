@@ -1,0 +1,9 @@
+{
+  "name":"s-h-thrift",
+  "version":"0.1.0",
+  "private":true,
+  "main":"server.js",
+  "scripts":{"start":"node server.js","check":"node --check server.js && node --check public/app.js && node --check public/admin.js && node --check tests/inventory.js","test":"node tests/inventory.js"},
+  "engines":{"node":">=22"},
+  "dependencies":{"better-sqlite3":"^11.10.0","express":"^4.19.2","cors":"^2.8.6"}
+}

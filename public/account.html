@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#f7f5ef">
+	<title>S-H — Your Account</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body class="account-page">
+	<header class="admin-header account-header"><a class="brand" href="/">S/H<small>YOUR ACCOUNT</small></a><a href="/#shop">Back to the edit &rarr;</a></header>
+	<main class="account-main">
+		<section id="authPanel" class="account-auth">
+			<div class="account-intro"><p class="eyebrow eyebrow-dark">YOUR S-H ACCOUNT</p><h1>Good to see you.</h1><p>Keep your details close and follow every find from checkout to your door.</p></div>
+			<div class="account-auth-panel">
+				<div class="account-tabs" role="tablist" aria-label="Sign in or register"><button class="account-tab active" type="button" data-auth-tab="login" aria-selected="true">Sign in</button><button class="account-tab" type="button" data-auth-tab="register" aria-selected="false">Create account</button></div>
+				<form id="loginForm" class="account-form">
+					<label>Email address<input name="email" type="email" autocomplete="email" required></label>
+					<label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+					<button class="button button-dark" type="submit">Sign in <span aria-hidden="true">&rarr;</span></button>
+				</form>
+				<form id="registerForm" class="account-form" hidden>
+					<label>Your name<input name="name" autocomplete="name" minlength="2" maxlength="100" required></label>
+					<label>Email address<input name="email" type="email" autocomplete="email" required></label>
+					<label>Phone number<input name="phone" type="tel" autocomplete="tel" minlength="5" required></label>
+					<label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+					<button class="button button-dark" type="submit">Create account <span aria-hidden="true">&rarr;</span></button>
+				</form>
+			</div>
+		</section>
+		<p id="accountStatus" class="account-status" role="status" aria-live="polite"></p>
+		<section id="accountDashboard" class="account-dashboard" hidden>
+			<div class="account-welcome"><div><p class="eyebrow eyebrow-dark">YOUR S-H ACCOUNT</p><h1>Hello, <span id="customerName">there</span>.</h1><p id="customerEmail" class="account-muted"></p></div><button id="logoutButton" class="account-logout" type="button">Sign out</button></div>
+			<div class="account-columns">
+				<section class="account-orders"><div class="account-section-heading"><div><p class="eyebrow eyebrow-dark">THE JOURNEY HOME</p><h2>Your orders</h2></div><span id="orderCount" class="account-count">0 orders</span></div><div id="customerOrders" class="customer-orders"></div></section>
+				<aside class="account-profile"><p class="eyebrow eyebrow-dark">YOUR DETAILS</p><h2>Profile</h2><form id="profileForm" class="account-form"><label>Name<input name="name" autocomplete="name" required></label><label>Email<input name="email" type="email" disabled></label><label>Phone<input name="phone" type="tel" autocomplete="tel" required></label><button class="button button-dark" type="submit">Save details</button></form></aside>
+			</div>
+		</section>
+	</main>
+	<footer class="site-footer account-footer"><a class="brand brand-footer" href="/">S/H<small>SECONDHAND STUDIO</small></a><p>Good clothes deserve another go.</p><a href="/#shop">Shop the edit &uarr;</a></footer>
+	<script src="/account.js" defer></script>
+</body>
+</html>

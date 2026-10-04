@@ -1,113 +1,100 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
-  <meta name="description" content="S-H secondhand and thrift clothing finds.">
-  <title>S-H — Thrift Finds</title>
-  <link rel="stylesheet" href="/style.css">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#f7f5ef">
+	<meta name="description" content="One-of-a-kind secondhand clothing, shoes and accessories, carefully chosen and clearly measured.">
+	<title>S-H — Secondhand, First Choice</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header class="top">
-    <a class="brand" href="/" aria-label="S-H home">S-H</a>
-    <nav aria-label="Main navigation">
-      <a href="#shop">Shop</a>
-      <a href="#categories">Categories</a>
-      <a href="#about">About</a>
-      <a href="#location">Location</a>
-      <button id="cartBtn" class="navbtn" type="button">
-        Cart <span id="cartCount">0</span>
-      </button>
-    </nav>
-  </header>
+	<div id="announcement" class="announcement" hidden></div>
+	<header class="site-header">
+		<a class="brand" href="/" aria-label="S-H home"><span data-brand-name>S/H</span><small>SECONDHAND STUDIO</small></a>
+		<nav class="main-nav" aria-label="Main navigation">
+			<a href="#shop">Shop all</a>
+			<a href="#categories">Collections</a>
+			<a href="#story">Our edit</a>
+		</nav>
+		<div class="header-actions">
+			<a class="account-link" href="/account.html">Account</a>
+			<button id="cartBtn" class="bag-button" type="button">Your bag <span id="cartCount">0</span></button>
+		</div>
+	</header>
 
-  <main>
-    <section class="hero">
-      <div>
-        <p class="eyebrow">SECONDHAND • ONE-OF-A-KIND</p>
-        <h1>Find it. Love it. Wear it again.</h1>
-        <p>Curated thrift clothing, shoes and accessories for every age.</p>
-        <a class="button" href="#shop">Shop finds</a>
-      </div>
-    </section>
+	<main>
+		<section class="hero" aria-labelledby="hero-title">
+			<img class="hero-image" src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2200&q=88" alt="A thoughtfully styled secondhand outfit on a city street">
+			<div class="hero-shade"></div>
+			<div class="hero-copy">
+				<p class="eyebrow">GOOD CLOTHES, GOOD AGAIN</p>
+				<h1 id="heroTitle">A better kind<br>of already loved.</h1>
+				<p id="heroSubtitle">One-off pieces with a past, ready for whatever comes next.</p>
+				<a id="heroCta" class="button button-lime" href="#shop">Find your next favourite <span aria-hidden="true">&rarr;</span></a>
+				<span class="hero-note">CURATED SECONDHAND · KUWAIT</span>
+			</div>
+			<span class="hero-index">01 / THE S-H EDIT</span>
+		</section>
 
-    <section id="categories" class="section">
-      <div class="sectionhead">
-        <div>
-          <p class="eyebrow">BROWSE</p>
-          <h2>Categories</h2>
-        </div>
-      </div>
-      <div id="cats" class="chips"></div>
-    </section>
+		<section id="categories" class="category-section page-width">
+			<div class="section-heading">
+				<div><p class="eyebrow eyebrow-dark">SHOP YOUR WAY</p><h2>Good things, by kind.</h2></div>
+				<a class="text-link" href="#shop">Browse everything <span aria-hidden="true">&rarr;</span></a>
+			</div>
+			<div id="cats" class="category-list" aria-label="Shop by category"></div>
+		</section>
 
-    <section id="shop" class="section">
-      <div class="sectionhead">
-        <div>
-          <p class="eyebrow">CURATED INVENTORY</p>
-          <h2>Latest finds</h2>
-        </div>
-        <div class="filters">
-          <input id="search" type="search" placeholder="Search brand, SKU or item" aria-label="Search items">
-          <select id="catFilter" aria-label="Filter by category">
-            <option value="">All categories</option>
-          </select>
-        </div>
-      </div>
-      <div id="inventoryNotice" class="inventoryNotice" role="status"></div>
-      <div id="grid" class="grid"></div>
-    </section>
+		<section id="shop" class="shop-section">
+			<div class="page-width">
+				<div class="section-heading shop-heading">
+					<div><p class="eyebrow eyebrow-dark">NO TWO THE SAME</p><h2>The latest finds<span class="heading-period">.</span></h2></div>
+					<p id="resultCount" class="result-count" aria-live="polite"></p>
+				</div>
+				<div class="shop-tools">
+					<label class="search-field"><span class="sr-only">Search items</span><input id="searchInput" type="search" placeholder="Search pieces, brands, sizes..."></label>
+					<label><span class="sr-only">Filter by category</span><select id="catFilter"><option value="">All categories</option></select></label>
+					<label><span class="sr-only">Filter by availability</span><select id="statusFilter"><option value="">All pieces</option><option value="available">Available now</option><option value="reserved">Reserved</option><option value="sold">Sold archive</option></select></label>
+					<label><span class="sr-only">Sort items</span><select id="sortFilter"><option value="latest">Latest added</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label>
+				</div>
+				<div id="grid" class="product-grid" aria-live="polite"></div>
+				<button id="loadMore" class="load-more" type="button" hidden>Load more pieces <span aria-hidden="true">&darr;</span></button>
+				<p id="emptyState" class="empty-state" hidden>No pieces match those filters. Try another search.</p>
+			</div>
+		</section>
 
-    <section id="about" class="section split">
-      <div>
-        <p class="eyebrow">HOW S-H WORKS</p>
-        <h2>Thrift, clearly listed.</h2>
-        <p>Every item can show its measurements, condition, identifiers and current inventory state before you reserve it.</p>
-      </div>
-      <div class="notice">
-        <b>24-hour reservation</b>
-        <p>An item can stay visible after another customer reserves it, but it cannot be added to another cart. If checkout is not completed within 24 hours, the reservation expires and the item returns automatically.</p>
-      </div>
-    </section>
+		<section id="story" class="story-section">
+			<div class="story-image-wrap"><img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=85" alt="A rail of carefully selected clothes in natural light" loading="lazy"></div>
+			<div class="story-copy"><p class="eyebrow eyebrow-dark">THE S-H WAY</p><h2>Wear the story.<br><em>Skip the waste.</em></h2><p>We pick pieces worth keeping and tell you what matters: real measurements, honest condition, and the details that make each one yours.</p><a class="text-link" href="#shop">Meet the one-offs <span aria-hidden="true">&rarr;</span></a></div>
+		</section>
+		<section class="delivery-note page-width"><span class="delivery-mark">S/H</span><div><p class="eyebrow eyebrow-dark">DELIVERY, THOUGHT THROUGH</p><h2>Your place, clearly pinned.</h2><p>Add your delivery address, PACI reference and a map link at checkout so your find gets to you without a guessing game.</p></div></section>
+	</main>
 
-    <section id="location" class="section">
-      <p class="eyebrow">DELIVERY</p>
-      <h2>Location made clear</h2>
-      <p>Checkout accepts your delivery address, PACI reference and map/location link to make delivery easier to identify.</p>
-    </section>
-  </main>
+	<footer class="site-footer"><a class="brand brand-footer" href="/"><span data-brand-name>S/H</span><small>SECONDHAND STUDIO</small></a><p>Good clothes deserve another go.</p><a href="#shop">Back to the edit &uarr;</a></footer>
 
-  <aside id="cart" class="drawer" aria-label="Shopping cart">
-    <div class="drawerhead">
-      <h2>Your cart</h2>
-      <button type="button" onclick="closeCart()" aria-label="Close cart">×</button>
-    </div>
-    <div id="cartLines"></div>
-    <div id="cartTotal"></div>
+	<div id="overlay" class="overlay" onclick="closeCart()"></div>
+	<aside id="cart" class="drawer" aria-labelledby="cartTitle" aria-modal="true" role="dialog" aria-hidden="true">
+		<div class="drawer-head"><div><p class="eyebrow eyebrow-dark">SAVED FOR YOU</p><h2 id="cartTitle">Your bag <span id="drawerCount">(0)</span></h2></div><button class="icon-button" type="button" aria-label="Close bag" onclick="closeCart()">&times;</button></div>
+		<div id="cartLines" class="cart-lines"></div>
+		<div id="cartTotal" class="cart-total"></div>
+		<form id="checkout" hidden>
+			<h3>Delivery details</h3>
+			<label>Full name<input name="name" autocomplete="name" required></label>
+			<label>Phone<input name="phone" type="tel" autocomplete="tel" required></label>
+			<label>Email <span>(optional)</span><input name="email" type="email" autocomplete="email"></label>
+			<label>Delivery address<textarea name="address" autocomplete="street-address" required></textarea></label>
+			<label>PACI reference <span>(optional)</span><input name="paci"></label>
+			<label>Map link <span>(optional)</span><input name="map_url" type="url" placeholder="https://maps.google.com/..."></label>
+			<label>Delivery notes <span>(optional)</span><textarea name="notes"></textarea></label>
+			<button class="button button-dark checkout-button" type="submit">Place order <span aria-hidden="true">&rarr;</span></button>
+		</form>
+	</aside>
 
-    <form id="checkout">
-      <h3>Checkout</h3>
-      <input name="name" placeholder="Full name" autocomplete="name" required>
-      <input name="phone" placeholder="Phone" autocomplete="tel" required>
-      <input name="email" type="email" placeholder="Email" autocomplete="email">
-      <textarea name="address" placeholder="Delivery address" autocomplete="street-address" required></textarea>
-      <input name="paci" placeholder="PACI reference">
-      <input name="map_url" type="url" placeholder="Map/location link">
-      <textarea name="notes" placeholder="Delivery notes"></textarea>
-      <button class="button" type="submit">Place order</button>
-    </form>
-  </aside>
-
-  <div id="overlay" class="overlay" onclick="closeCart()"></div>
-
-  <div id="preview" class="modal" role="dialog" aria-modal="true" aria-label="Item preview">
-    <div class="modalbox">
-      <button class="x" type="button" onclick="closePreview()" aria-label="Close preview">×</button>
-      <div id="previewBody"></div>
-    </div>
-  </div>
-
-  <script src="/app.js"></script>
+	<div id="preview" class="modal" role="dialog" aria-modal="true" aria-label="Item details" onclick="if(event.target===this)closePreview()"><div class="modal-box"><button class="icon-button modal-close" type="button" aria-label="Close details" onclick="closePreview()">&times;</button><div id="previewBody"></div></div></div>
+	<div id="toast" class="toast" role="status" aria-live="polite"></div>
+	<script src="/app.js" defer></script>
 </body>
 </html>

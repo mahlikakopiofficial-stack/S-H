@@ -1,32 +1,47 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
-  <title>S-H Admin</title>
-  <link rel="stylesheet" href="/style.css">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#f7f5ef">
+	<title>S-H — Studio Admin</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/style.css">
 </head>
-<body>
-  <main class="section adminPage">
-    <div class="sectionhead">
-      <div>
-        <p class="eyebrow">PRIVATE ADMIN</p>
-        <h1>S-H Inventory</h1>
-        <p>Inventory remains visible to admin with Available, Reserved and Sold states.</p>
-      </div>
-    </div>
-
-    <div class="adminLogin">
-      <label for="pw">Admin password</label>
-      <input id="pw" type="password" autocomplete="current-password" placeholder="Enter admin password">
-      <button class="button" type="button" onclick="loadAdmin()">Load inventory</button>
-    </div>
-
-    <div id="adminStatus" class="inventoryNotice" role="status"></div>
-    <div id="admin"></div>
-  </main>
-
-  <script src="/admin.js"></script>
+<body class="admin-page">
+	<header class="admin-header"><a class="brand" href="/">S/H<small>STUDIO ADMIN</small></a><a href="/">Back to storefront &rarr;</a></header>
+	<main class="admin-main">
+		<div class="admin-title"><div><p class="eyebrow eyebrow-dark">S-H STUDIO</p><h1>Inventory, in good order.</h1><p>Every piece, hold and order in one place.</p></div><form id="adminLogin" class="admin-login"><label class="sr-only" for="pw">Admin password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Admin password" required><button class="button button-dark" type="submit">Sign in</button></form></div>
+		<p id="adminStatus" class="admin-status" role="status" aria-live="polite"></p>
+		<section id="adminPanel" hidden>
+			<div class="admin-summary"><div class="summary-item"><span>Available</span><strong id="availableTotal">0</strong></div><div class="summary-item"><span>Reserved</span><strong id="reservedTotal">0</strong></div><div class="summary-item"><span>Sold</span><strong id="soldTotal">0</strong></div></div>
+			<div class="admin-tabs" role="tablist" aria-label="Admin sections"><button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="inventory">Inventory</button><button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="orders">Orders</button><button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="settings">Storefront</button></div>
+			<section id="inventoryView" role="tabpanel">
+				<details class="new-item"><summary>Add a piece</summary><form id="newProductForm" class="new-product-form">
+					<label>Piece name<input name="title" maxlength="180" placeholder="e.g. Boxy cotton overshirt" required></label>
+					<label>Brand<input name="brand" placeholder="Brand or unbranded"></label>
+					<label>Category<select id="newCategory" name="category_id" required></select></label>
+					<label>Subcategory<select id="newSubcategory" name="subcategory_id" required></select></label>
+					<label>Tagged size<input name="tagged_size" placeholder="e.g. M"></label>
+					<label>Actual size<input name="actual_size" placeholder="e.g. Fits M-L"></label>
+					<label>Condition<select name="condition_grade"><option value="A">A · Excellent</option><option value="B" selected>B · Good</option><option value="C">C · Worn in</option></select></label>
+					<label>Price (KWD)<input name="price" type="number" min="0.001" step="0.001" placeholder="12.000" required></label>
+					<label>Quantity<input name="quantity" type="number" min="1" step="1" value="1" required></label>
+					<label class="wide-field">Product photo<input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><small>JPEG, PNG, WebP or GIF. Up to 8 MB.</small></label>
+					<label class="wide-field">Or photo URL<input name="image_url" type="url" placeholder="https://... (optional)"></label>
+					<label class="wide-field">Notes<textarea name="notes" rows="2" placeholder="Fabric, measurements, repairs..."></textarea></label>
+					<button class="button button-dark" type="submit">Add to inventory <span aria-hidden="true">&rarr;</span></button>
+				</form></details>
+				<div class="admin-toolbar"><label class="sr-only" for="inventorySearch">Search inventory</label><input id="inventorySearch" type="search" placeholder="Search by item, SKU, category..."><label class="sr-only" for="inventoryCategory">Filter category</label><select id="inventoryCategory"><option value="">All categories</option></select><label class="sr-only" for="inventoryFilter">Filter stock status</label><select id="inventoryFilter"><option value="">All stock states</option><option value="available">Available</option><option value="reserved">Reserved</option><option value="sold">Sold</option></select><label class="sr-only" for="inventorySort">Sort inventory</label><select id="inventorySort"><option value="category">Category A-Z</option><option value="newest">Newest first</option><option value="title">Piece name A-Z</option><option value="price-low">Price low-high</option><option value="price-high">Price high-low</option></select></div>
+				<div id="inventoryTable" class="admin-table-wrap"></div>
+				<div id="inventoryPagination" class="admin-pagination"></div>
+			</section>
+			<section id="ordersView" role="tabpanel" hidden><div id="ordersTable" class="admin-table-wrap"></div></section>
+			<section id="settingsView" role="tabpanel" hidden><form id="storefrontSettingsForm" class="storefront-settings-form"><div class="settings-intro"><p class="eyebrow eyebrow-dark">LIVE STORE FRONT</p><h2>Make the first impression yours.</h2><p>Changes appear on the storefront as soon as you save.</p></div><label>Shop name<input name="brand_name" maxlength="32" required></label><label>Announcement bar<input name="announcement" maxlength="180" placeholder="Leave blank to hide the bar"></label><label>Hero headline<textarea name="hero_title" maxlength="180" rows="2" required></textarea></label><label>Hero supporting text<textarea name="hero_subtitle" maxlength="180" rows="2" required></textarea></label><label>Button label<input name="cta_label" maxlength="48" required></label><label>Accent color<input name="accent_color" type="color" required></label><button class="button button-dark" type="submit">Save storefront settings</button></form></section>
+		</section>
+	</main>
+	<script src="/admin.js" defer></script>
 </body>
 </html>

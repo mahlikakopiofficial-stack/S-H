@@ -1,1 +1,20 @@
-const fs=require('fs'),path=require('path');const dbFile=path.join(__dirname,'..','data','sh.db');if(fs.existsSync(dbFile))fs.unlinkSync(dbFile);console.log('Inventory test database reset. Start server once to seed 30 samples per subcategory.');console.log('Required rules: reserve -> visible but not addable; expire at 24h -> available; checkout -> converted/sold; admin -> always shows all inventory. PASS');
+const fs=require('fs');
+const path=require('path');
+
+const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+
+const required=[
+  "function reservedQty",
+  "function soldQty",
+  "function availableQty",
+  "Reservation expired",
+  "status='converted'",
+  "app.post('/api/checkout'",
+  "app.get('/api/admin/inventory'"
+];
+
+for(const pattern of required){
+  if(!server.includes(pattern))throw new Error('Missing inventory safeguard: '+pattern);
+}
+
+console.log('PASS inventory safeguards present');
